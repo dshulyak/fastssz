@@ -338,6 +338,9 @@ func (v *Value) createSlice() string {
 		if v.c {
 			return ""
 		}
+		if len(v.e.obj) > 0 {
+			return fmt.Sprintf("::.%s = make([]%v, %s)", v.name, v.e.objRef(), size)
+		}
 		if v.e.c {
 			return fmt.Sprintf("::.%s = make([][%d]byte, %s)", v.name, v.e.s, size)
 		}
