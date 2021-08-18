@@ -224,6 +224,8 @@ const (
 	TypeBool
 	// TypeBytes is a SSZ fixed or dynamic bytes type
 	TypeBytes
+	// TypeStringBytes is a SSZ bytes unmarshalled into a golang string
+	TypeStringBytes
 	// TypeBitVector is a SSZ bitvector
 	TypeBitVector
 	// TypeBitList is a SSZ bitlist
@@ -246,6 +248,8 @@ func (t Type) String() string {
 		return "bool"
 	case TypeBytes:
 		return "bytes"
+	case TypeStringBytes:
+		return "string"
 	case TypeBitVector:
 		return "bitvector"
 	case TypeBitList:
@@ -874,7 +878,6 @@ func (e *env) parseASTFieldType(name, tags string, expr ast.Expr) (*Value, error
 		default:
 			return nil, fmt.Errorf("cannot handle %s", elem)
 		}
-
 	case *ast.ArrayType:
 		if isByte(obj.Elt) {
 			if fixedlen := getObjLen(obj); fixedlen != 0 {
@@ -954,6 +957,21 @@ func (e *env) parseASTFieldType(name, tags string, expr ast.Expr) (*Value, error
 			v = &Value{t: TypeUint, n: 1}
 		case "bool":
 			v = &Value{t: TypeBool, n: 1}
+		case "string":
+			v := &Value{t: TypeStringBytes}
+			size, ok := getTagsInt(tags, "ssz-size")
+			if ok {
+				// fixed bytes
+				v.s = size
+				v.n = size
+				return v, nil
+			}
+			max, ok := getTagsInt(tags, "ssz-max")
+			if !ok {
+				return nil, fmt.Errorf("string expects either ssz-max or ssz-size")
+			}
+			v.m = max
+			return v, nil
 		default:
 			// try to resolve as an alias
 			vv, err := e.encodeItem(obj.Name, tags)
@@ -1197,7 +1215,8 @@ func (v *Value) isFixed() bool {
 	switch v.t {
 	case TypeVector:
 		return v.e.isFixed()
-
+	case TypeStringBytes:
+		return false
 	case TypeBytes:
 		if v.s != 0 {
 			// fixed bytes

@@ -93,7 +93,13 @@ func (v *Value) hashTreeRoot() string {
 	switch v.t {
 	case TypeContainer, TypeReference:
 		return v.hashTreeRootContainer(false)
-
+	case TypeStringBytes:
+		tmpl := `{{.validate}}hh.PutBytes([]byte(::.{{.name}}))`
+		return execTmpl(tmpl, map[string]interface{}{
+			"validate": v.validate(),
+			"name":     v.name,
+			"size":     v.s,
+		})
 	case TypeBytes:
 		// There are only fixed []byte
 		name := v.name

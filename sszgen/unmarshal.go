@@ -28,7 +28,19 @@ func (v *Value) unmarshal(dst string) string {
 	switch v.t {
 	case TypeContainer, TypeReference:
 		return v.umarshalContainer(false, dst)
-
+	case TypeStringBytes:
+		validate := ""
+		if v.s == 0 {
+			// dynamic bytes, we need to validate the size of the buffer
+			validate = fmt.Sprintf("if len(%s) > %d { return ssz.ErrBytesLength }\n", dst, v.m)
+		}
+		tmpl := `{{.validate}}::.{{.name}} = string({{.dst}})`
+		return execTmpl(tmpl, map[string]interface{}{
+			"validate": validate,
+			"name":     v.name,
+			"dst":      dst,
+			"size":     v.m,
+		})
 	case TypeBytes:
 		if v.c {
 			return fmt.Sprintf("copy(::.%s[:], %s)", v.name, dst)

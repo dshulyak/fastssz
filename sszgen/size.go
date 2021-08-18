@@ -79,7 +79,7 @@ func (v *Value) size(name string) string {
 	case TypeBitList:
 		fallthrough
 
-	case TypeBytes:
+	case TypeBytes, TypeStringBytes:
 		return fmt.Sprintf(name+" += len(::.%s)", v.name)
 
 	case TypeList:

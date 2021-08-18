@@ -2,7 +2,7 @@ package main
 
 func (v *Value) validate() string {
 	switch v.t {
-	case TypeBitList, TypeBytes:
+	case TypeBitList, TypeBytes, TypeStringBytes:
 		cmp := "!="
 		if v.t == TypeBitList {
 			cmp = ">"

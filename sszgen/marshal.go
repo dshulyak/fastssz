@@ -39,7 +39,6 @@ func (v *Value) marshal() string {
 	switch v.t {
 	case TypeContainer, TypeReference:
 		return v.marshalContainer(false)
-
 	case TypeBytes:
 		name := v.name
 		if v.c {
@@ -51,7 +50,13 @@ func (v *Value) marshal() string {
 			"validate": v.validate(),
 			"name":     name,
 		})
+	case TypeStringBytes:
+		tmpl := `{{.validate}}dst = append(dst, []byte(::.{{.name}})...)`
 
+		return execTmpl(tmpl, map[string]interface{}{
+			"validate": v.validate(),
+			"name":     v.name,
+		})
 	case TypeUint:
 		var name string
 		if v.ref != "" || v.obj != "" {
