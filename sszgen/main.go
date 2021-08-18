@@ -346,8 +346,6 @@ func (e *env) print(first bool, order []string, experimental bool) (string, bool
 		{{ .Marshal }}
 		{{ .Unmarshal }}
 		{{ .Size }}
-		{{ .HashTreeRoot }}
-		{{ .GetTree }}
 	{{ end }}
 	`
 
