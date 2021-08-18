@@ -789,10 +789,16 @@ func (e *env) parseASTStructType(name string, typ *ast.StructType) (*Value, erro
 	}
 
 	for _, f := range typ.Fields.List {
-		if len(f.Names) != 1 {
-			continue
+		var name string
+		if len(f.Names) == 0 {
+			ident, ok := f.Type.(*ast.Ident)
+			if !ok {
+				return nil, fmt.Errorf("only struct can be used as an embedded field")
+			}
+			name = ident.Name
+		} else {
+			name = f.Names[0].Name
 		}
-		name := f.Names[0].Name
 		if !isExportedField(name) {
 			continue
 		}
