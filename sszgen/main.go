@@ -462,6 +462,8 @@ func detectImports(v *Value) []string {
 			ref = i.ref
 		case TypeList, TypeVector:
 			ref = i.e.ref
+		case TypeBytes:
+			ref = ""
 		default:
 			ref = i.ref
 		}
