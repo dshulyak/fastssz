@@ -81,12 +81,13 @@ func encode(source string, targets []string, output string, includePaths []strin
 	}
 
 	e := &env{
-		include:  include,
-		source:   source,
-		files:    files,
-		objs:     map[string]*Value{},
-		packName: packName,
-		targets:  targets,
+		include:    include,
+		source:     source,
+		files:      files,
+		objs:       map[string]*Value{},
+		containers: map[string]*Value{},
+		packName:   packName,
+		targets:    targets,
 	}
 
 	if err := e.generateIR(); err != nil { // 2.
@@ -169,7 +170,7 @@ type Value struct {
 	obj string
 	// n is the fixed size of the value
 	n uint64
-	// auxiliary int number
+	// size of the value
 	s uint64
 	// type of the value
 	t Type
@@ -184,8 +185,10 @@ type Value struct {
 	// ref is the external reference if the struct is imported
 	// from another package
 	ref string
-	// new determines if the value is a pointer
+	// noPtr determines if the value is a pointer
 	noPtr bool
+	// recursive ...
+	recursive bool
 }
 
 func (v *Value) isListElem() bool {
@@ -279,6 +282,8 @@ type env struct {
 	raw map[string]*astStruct
 	// map of structs with their IR format
 	objs map[string]*Value
+	// containers ...
+	containers map[string]*Value
 	// map of files with their structs in order
 	order map[string][]string
 	// target structures to encode
@@ -370,6 +375,9 @@ func (e *env) print(first bool, order []string, experimental bool) (string, bool
 		if !ok {
 			continue
 		}
+		if obj.recursive && obj.t == TypeContainer {
+			obj = e.containers[obj.name].copy()
+		}
 
 		// detect the imports required to unmarshal this objects
 		refs := detectImports(obj)
@@ -381,16 +389,10 @@ func (e *env) print(first bool, order []string, experimental bool) (string, bool
 			// require the sszgen functions.
 			continue
 		}
-		getTree := ""
-		if experimental {
-			getTree = e.getTree(name, obj)
-		}
 		objs = append(objs, &Obj{
-			HashTreeRoot: e.hashTreeRoot(name, obj),
-			GetTree:      getTree,
-			Marshal:      e.marshal(name, obj),
-			Unmarshal:    e.unmarshal(name, obj),
-			Size:         e.size(name, obj),
+			Marshal:   e.marshal(name, obj),
+			Unmarshal: e.unmarshal(name, obj),
+			Size:      e.size(name, obj),
 		})
 	}
 	if len(objs) == 0 {
@@ -784,11 +786,17 @@ func (e *env) encodeItem(name, tags string) (*Value, error) {
 
 // parse the Go AST struct
 func (e *env) parseASTStructType(name string, typ *ast.StructType) (*Value, error) {
+	if v, exist := e.containers[name]; exist {
+		v := v.copy()
+		v.recursive = true
+		return v, nil
+	}
 	v := &Value{
 		name: name,
 		t:    TypeContainer,
 		o:    []*Value{},
 	}
+	e.containers[name] = v
 
 	for _, f := range typ.Fields.List {
 		var name string
