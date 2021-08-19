@@ -459,7 +459,9 @@ func detectImports(v *Value) []string {
 				ref = i.ref
 			}
 		case TypeContainer:
-			ref = i.ref
+			if !i.noPtr {
+				ref = i.ref
+			}
 		case TypeList, TypeVector:
 			ref = i.e.ref
 		case TypeBytes:
@@ -803,11 +805,14 @@ func (e *env) parseASTStructType(name string, typ *ast.StructType) (*Value, erro
 	for _, f := range typ.Fields.List {
 		var name string
 		if len(f.Names) == 0 {
-			ident, ok := f.Type.(*ast.Ident)
-			if !ok {
-				return nil, fmt.Errorf("only struct can be used as an embedded field")
+			switch obj := f.Type.(type) {
+			case *ast.Ident:
+				name = obj.Name
+			case *ast.SelectorExpr:
+				name = obj.Sel.Name
+			default:
+				return nil, fmt.Errorf("can't be embedded %v", obj)
 			}
-			name = ident.Name
 		} else {
 			name = f.Names[0].Name
 		}
