@@ -377,6 +377,14 @@ func (e *env) print(first bool, order []string, experimental bool) (string, bool
 		}
 		if obj.recursive && obj.t == TypeContainer {
 			obj = e.containers[obj.name].copy()
+		} else if len(obj.o) > 0 {
+			for i, o := range obj.o {
+				if o.recursive {
+					obj.o[i] = e.containers[o.name].copy()
+				} else if o.e != nil && o.e.recursive {
+					obj.o[i].e = e.containers[o.e.name].copy()
+				}
+			}
 		}
 
 		// detect the imports required to unmarshal this objects
